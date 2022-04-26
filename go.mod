@@ -8,6 +8,7 @@ require (
 	github.com/charmbracelet/wish v0.3.1
 	github.com/gliderlabs/ssh v0.3.3
 	github.com/mattn/go-sqlite3 v1.14.12
+	golang.org/x/text v0.3.6
 )
 
 require (

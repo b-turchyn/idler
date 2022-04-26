@@ -64,7 +64,6 @@ var (
     "Leaderboard",
     "Settings",
     "About",
-    "Test",
   }
 )
 
@@ -86,12 +85,12 @@ func Title(ident string, points uint64, perSecond uint64) string {
     descStyle.Render("Idler v0.1.0"),
     infoStyle.Copy().MarginBottom(1).Render(
       fmt.Sprintf(
-        "%s%sPoints: %d%s%d/s",
+        "%s%sPoints: %s%s%s/s",
         ident,
         divider,
-        points,
+        util.NumberFormatLong(points),
         divider,
-        perSecond,
+        util.NumberFormatLong(perSecond),
       ),
     ),
   )

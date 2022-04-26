@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -36,7 +37,27 @@ func initTables(db *sql.DB) error {
   errCheck(err)
   stmt.Close()
 
+  addColumn(db, "users", "followers", "INT")
+  addColumn(db, "users", "tier1subs", "INT")
+  addColumn(db, "users", "tier2subs", "INT")
+  addColumn(db, "users", "tier3subs", "INT")
+
   return nil
+}
+
+func addColumn(db *sql.DB, table string, column string, columndef string) {
+  stmt, err := db.Prepare(fmt.Sprintf("SELECT %s FROM %s LIMIT 0, 1", column, table))
+
+  if err == nil {
+    stmt.Close()
+    return
+  }
+
+  stmt, err = db.Prepare(fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", table, column, columndef))
+  errCheck(err)
+  defer stmt.Close()
+  _, err = stmt.Exec()
+  errCheck(err)
 }
 
 func errCheck(err error) {

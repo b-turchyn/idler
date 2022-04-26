@@ -165,7 +165,8 @@ func (m State) ViewerCount() string {
 
   for _, v := range ItemList {
     refmodel := reflect.ValueOf(m.User.Stats)
-    listItems = append(listItems, view.ListItem(fmt.Sprintf("%ss: %d", v.Name, refmodel.FieldByName(v.Field).Uint()), false))
+    formattednumber := util.NumberFormatLong(refmodel.FieldByName(v.Field).Uint())
+    listItems = append(listItems, view.ListItem(fmt.Sprintf("%ss: %s", v.Name, formattednumber), false))
   }
 
   return view.List(
@@ -181,8 +182,9 @@ func (m State) CostList() string {
     refmodel := reflect.ValueOf(m.User.Stats)
     var itemstring string
 
+    formattednumber := util.NumberFormatLong(util.Cost(v.InitialCost, refmodel.FieldByName(v.Field).Uint()))
     itemstring = view.ListItem(
-      fmt.Sprintf("%ss: %d", v.Name, util.Cost(v.InitialCost, refmodel.FieldByName(v.Field).Uint())),
+      fmt.Sprintf("%ss: %s", v.Name, formattednumber),
       i == m.Cursor,
     )
 

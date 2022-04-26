@@ -9,13 +9,14 @@ var (
     Border(lipgloss.NormalBorder(), false, true, false, false).
     MarginRight(2).
     Height(8).
-    Width(30)
+    Width(50)
 
   listHeader = lipgloss.NewStyle().
     BorderStyle(lipgloss.NormalBorder()).
     BorderBottom(true).
     BorderForeground(subtle).
     MarginRight(2).
+    MarginLeft(2).
     Render
 
   listItem = lipgloss.NewStyle().PaddingLeft(2).Render
