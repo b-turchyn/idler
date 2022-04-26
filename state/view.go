@@ -9,7 +9,10 @@ import (
 )
 
 func aboutView(m State) string {
-  return "About page"
+  return lipgloss.JoinVertical(
+    lipgloss.Left,
+    m.ChangelogViewport.View(),
+  )
 }
 
 func settingsView(m State) string {

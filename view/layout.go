@@ -82,7 +82,7 @@ func MainLayout(width int, selectedTab int, ident string, points uint64, perSeco
 func Title(ident string, points uint64, perSecond uint64) string {
   return lipgloss.JoinVertical(
     lipgloss.Left,
-    descStyle.Render("Idler v0.1.0"),
+    descStyle.Render("Idler v0.1.1"),
     infoStyle.Copy().MarginBottom(1).Render(
       fmt.Sprintf(
         "%s%sPoints: %s%s%s/s",

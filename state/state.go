@@ -9,7 +9,9 @@ import (
 	"github.com/b-turchyn/idler/model"
 	"github.com/b-turchyn/idler/util"
 	"github.com/b-turchyn/idler/view"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type State struct {
@@ -17,6 +19,7 @@ type State struct {
   Width int
   Height int
   PerSecond uint64
+  windowReady bool
 
   Cursor int
   SelectedTab int
@@ -24,6 +27,8 @@ type State struct {
   User model.User
 
   Db *sql.DB
+
+  ChangelogViewport viewport.Model
 }
 
 func (m State) Init() tea.Cmd {
@@ -32,10 +37,31 @@ func (m State) Init() tea.Cmd {
 }
 
 func (m State) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+  var (
+    cmd tea.Cmd
+    cmds []tea.Cmd
+  )
+
   switch msg := msg.(type) {
   case tea.WindowSizeMsg:
     m.Height = msg.Height
     m.Width = msg.Width
+
+    headerHeight := lipgloss.Height(view.Tabs(m.Width, 0)) +
+                    lipgloss.Height(view.Title(m.User.Ident, m.User.Stats.Points, m.PerSecond))
+
+    if !m.windowReady {
+      m.ChangelogViewport = viewport.New(m.Width, m.Height - headerHeight)
+      m.ChangelogViewport.YPosition = headerHeight
+      m.ChangelogViewport.HighPerformanceRendering = false
+      m.ChangelogViewport.SetContent(view.ChangelogView())
+
+      m.windowReady = true
+    } else {
+      m.ChangelogViewport.Width = m.Width
+      m.ChangelogViewport.Height = m.Height - headerHeight
+    }
+
   case tea.KeyMsg:
     switch msg.String() {
     case "q", "ctrl+c":
@@ -55,16 +81,21 @@ func (m State) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
       tea.EnterAltScreen()
     }
   case util.ViewTickMsg:
-    return m, util.Tick()
+    cmds = append(cmds, util.Tick())
   case util.GameTickMsg:
     m = m.GameTick()
-    return m, util.GameLoop()
+    cmds = append(cmds, util.GameLoop())
   case util.SaveDataMsg:
     database.SaveUserByPublicKey(m.Db, m.User)
-    return m, util.SaveDataLoop()
+    cmds = append(cmds, util.SaveDataLoop())
   }
 
-  return m, nil
+  if m.SelectedTab == 3 {
+    m.ChangelogViewport, cmd = m.ChangelogViewport.Update(msg)
+    cmds = append(cmds, cmd)
+  }
+
+  return m, tea.Batch(cmds...)
 }
 
 func (m State) SetupData() State {
