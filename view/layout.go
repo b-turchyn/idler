@@ -61,6 +61,7 @@ var (
 
   TabList = []string{
     "Game",
+    "Leaderboard",
     "Settings",
     "About",
     "Test",
@@ -83,7 +84,7 @@ func Title(ident string, points uint64, perSecond uint64) string {
   return lipgloss.JoinVertical(
     lipgloss.Left,
     descStyle.Render("Idler v0.1.0"),
-    infoStyle.MarginBottom(1).Render(
+    infoStyle.Copy().MarginBottom(1).Render(
       fmt.Sprintf(
         "%s%sPoints: %d%s%d/s",
         ident,

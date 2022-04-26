@@ -81,10 +81,12 @@ func (m State) View() string {
   var f func(m State) string
 
   switch m.SelectedTab {
-  case 2:
+  case 3:
     f = aboutView
-  case 1:
+  case 2:
     f = settingsView
+  case 1:
+    f = leaderboardView
   case 0:
     fallthrough
   default:

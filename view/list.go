@@ -40,6 +40,10 @@ func ListItem(text string, selected bool) string {
   return listItem(text)
 }
 
+func ListHeader(text string) string {
+  return listHeader(text)
+}
+
 func prepend(items []string, prepend string) []string {
   return append([]string{prepend}, items...)
 }

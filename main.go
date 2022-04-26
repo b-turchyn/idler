@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
@@ -28,12 +29,15 @@ func main() {
   var err error
   db, err = database.Open("idler.sqlite3")
 
+  go state.GetTopUsers(db)
+
   s, err := wish.NewServer(
     wish.WithAddress(fmt.Sprintf("%s:%d", host, port)),
     wish.WithHostKeyPath(".ssh/term_info_ed25519"),
     wish.WithMiddleware(
       bm.Middleware(teaHandler),
       lm.Middleware(),
+      state.SessionCountMiddleware(),
     ),
     wish.WithPublicKeyAuth(func (ctx ssh.Context, key ssh.PublicKey) bool {
       return true
@@ -69,7 +73,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
     fmt.Println("no active terminal, skipping")
     return nil, nil
   }
-  log.Printf("%+v\n", s.PublicKey().Marshal())
+  log.Printf("%s\n", base64.StdEncoding.EncodeToString(s.PublicKey().Marshal()))
 
   user := database.SelectUserByPublicKey(db, s.PublicKey().Marshal())
   user.Ident = s.User()
