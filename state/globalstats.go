@@ -38,7 +38,7 @@ func TopUsers() []string {
   var result []string
   for i, v := range TopUsersList {
     result = append(result, view.ListItem(
-      fmt.Sprintf("%d. %s (%s points)", i + 1, v.Ident, util.NumberFormatLong(v.Stats.Points)),
+      fmt.Sprintf("%d. %s (%s points)", i + 1, v.Ident, util.NumberFormatLong(v.StatsV01.Points)),
       false,
     ))
   }

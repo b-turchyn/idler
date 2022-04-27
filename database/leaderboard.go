@@ -24,9 +24,9 @@ func GetLeaderboard(db *sql.DB) []model.User {
 
   for rows.Next() {
     user := model.User{
-      Stats: model.PlayerStats{},
+      StatsV01: model.PlayerStats{},
     }
-    rows.Scan(&user.Ident, &user.Stats.Points)
+    rows.Scan(&user.Ident, &user.StatsV01.Points)
     result = append(result, user)
   }
 

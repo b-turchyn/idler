@@ -24,6 +24,7 @@ func gameView(m State) string {
     lipgloss.Top,
     m.ViewerCount(),
     m.CostList(),
+    m.UpgradeList(),
   )
 }
 

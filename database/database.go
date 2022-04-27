@@ -42,6 +42,7 @@ func initTables(db *sql.DB) error {
   addColumn(db, "users", "tier1subs", "INT")
   addColumn(db, "users", "tier2subs", "INT")
   addColumn(db, "users", "tier3subs", "INT")
+  addColumn(db, "users", "data", "BLOB")
 
   return nil
 }

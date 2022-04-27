@@ -17,7 +17,25 @@ import (
 const (
   CURSOR_COLUMN = 0
   CURSOR_ROW = 1
+
+  TAB_GAME = 0
+  TAB_SETTINGS = 1
+  TAB_LEADERBOARD = 2
+  TAB_ABOUT = 3
+
+  GAME_COLUMN_ITEMS = 0
+  GAME_COLUMN_UPGRADES = 1
 )
+
+/**
+ * To use:
+ * - 0: Which tab you are on
+ * - 1: Which column you are on
+ */
+var maxLengthColumns = [][]int{
+  // TAB_GAME
+  []int{ len(ItemList), len(ItemList[0].Upgrades) },
+}
 
 type State struct {
   Term string
@@ -28,6 +46,7 @@ type State struct {
 
   Cursor [2]int
   SelectedTab int
+  SelectedItem int
 
   User model.User
 
@@ -53,7 +72,7 @@ func (m State) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     m.Width = msg.Width
 
     headerHeight := lipgloss.Height(view.Tabs(m.Width, 0)) +
-                    lipgloss.Height(view.Title(m.User.Ident, m.User.Stats.Points, m.PerSecond))
+                    lipgloss.Height(view.Title(m.User.Ident, m.User.StatsV01.Points, m.PerSecond))
 
     if !m.windowReady {
       m.ChangelogViewport = viewport.New(m.Width, m.Height - headerHeight)
@@ -79,9 +98,13 @@ func (m State) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     case "enter":
       m = m.purchase()
     case "up", "k":
-      m.Cursor[CURSOR_ROW]--
+      m = m.SetCursorRow(m.CursorRow() - 1)
     case "down", "j":
-      m.Cursor[CURSOR_ROW]++
+      m = m.SetCursorRow(m.CursorRow() + 1)
+    case "left", "h":
+      m = m.SetCursorColumn(m.CursorColumn() - 1)
+    case "right", "l":
+      m = m.SetCursorColumn(m.CursorColumn() + 1)
     case "ctrl+l":
       tea.EnterAltScreen()
     }
@@ -108,7 +131,7 @@ func (m State) SetupData() State {
 }
 
 func (m State) GameTick() State {
-  m.User.Stats.Points += m.PerSecond
+  m.User.StatsV01.Points += m.PerSecond
 
   return m
 }
@@ -133,7 +156,7 @@ func (m State) View() string {
     m.Width,
     m.SelectedTab,
     m.User.Ident,
-    m.User.Stats.Points,
+    m.User.StatsV01.Points,
     m.PerSecond,
     f(m),
   )
@@ -145,15 +168,15 @@ func (m State) purchase() State {
   }
 
   item := ItemList[m.Cursor[CURSOR_COLUMN]]
-  refmodel := reflect.ValueOf(&m.User.Stats).Elem()
+  refmodel := reflect.ValueOf(&m.User.StatsV01).Elem()
   field := refmodel.FieldByName(item.Field)
   price := util.Cost(item.InitialCost, field.Uint())
 
-  if m.User.Stats.Points < price {
+  if m.User.StatsV01.Points < price {
     return m
   }
 
-  m.User.Stats.Points -= price
+  m.User.StatsV01.Points -= price
   field.SetUint(field.Uint() + 1)
 
   m = m.recalculatePerSecond()
@@ -165,7 +188,7 @@ func (m State) recalculatePerSecond() State {
   var result uint64
 
   for _, v := range ItemList {
-    refmodel := reflect.ValueOf(m.User.Stats)
+    refmodel := reflect.ValueOf(m.User.StatsV01)
     field := refmodel.FieldByName(v.Field).Uint()
 
     result += v.BasePoints * field
@@ -192,6 +215,8 @@ func (m State) IncrementTab(up bool) State {
   }
 
   m.Cursor = [2]int{0, 0}
+  m.SelectedItem = 0
+  m.RecalculateCursorDisplay()
 
   return m
 }
@@ -200,7 +225,7 @@ func (m State) ViewerCount() string {
   var listItems []string
 
   for _, v := range ItemList {
-    refmodel := reflect.ValueOf(m.User.Stats)
+    refmodel := reflect.ValueOf(m.User.StatsV01)
     formattednumber := util.NumberFormatLong(refmodel.FieldByName(v.Field).Uint())
     listItems = append(listItems, view.ListItem(fmt.Sprintf("%ss: %s", v.Name, formattednumber), false))
   }
@@ -215,7 +240,7 @@ func (m State) CostList() string {
   var listItems []string
 
   for i, v := range ItemList {
-    refmodel := reflect.ValueOf(m.User.Stats)
+    refmodel := reflect.ValueOf(m.User.StatsV01)
     var itemstring string
 
     formattednumber := util.NumberFormatLong(util.Cost(v.InitialCost, refmodel.FieldByName(v.Field).Uint()))
@@ -231,4 +256,58 @@ func (m State) CostList() string {
     "Buy Viewers",
     listItems,
   )
+}
+
+func (m State) UpgradeList() string {
+  var upgradeItems []string
+  item := ItemList[m.SelectedItem]
+
+  for i, v := range item.Upgrades {
+    upgradeItems = append(upgradeItems, v.ToString(m.Cursor[CURSOR_COLUMN] == 1 && i == m.Cursor[CURSOR_ROW]))
+  }
+
+  return view.List(
+    "Upgrades",
+    upgradeItems,
+  )
+}
+
+func (m State) SetCursorColumn(col int) State {
+  max := len(maxLengthColumns[m.SelectedTab])
+  m.Cursor[CURSOR_COLUMN] = util.Within(0, col, max - 1)
+
+  return m.RecalculateCursorDisplay()
+}
+
+func (m State) CursorColumn() int {
+  return m.Cursor[CURSOR_COLUMN]
+}
+
+func (m State) SetCursorRow(row int) State {
+  max := maxLengthColumns[m.SelectedTab][m.CursorColumn()]
+  m.Cursor[CURSOR_ROW] = util.Within(0, row, max - 1)
+
+  return m.RecalculateCursorDisplay()
+}
+
+func (m State) CursorRow() int {
+  return m.Cursor[CURSOR_ROW]
+}
+
+func (m State) SetCursor(col, row int) State {
+  m.Cursor[CURSOR_COLUMN] = col
+  m.Cursor[CURSOR_ROW] = row
+
+  return m.RecalculateCursorDisplay()
+}
+
+func (m State) RecalculateCursorDisplay() State {
+  switch m.SelectedTab {
+  case TAB_GAME:
+    if m.CursorColumn() == GAME_COLUMN_ITEMS {
+      m.SelectedItem = m.CursorRow()
+      maxLengthColumns[TAB_GAME][GAME_COLUMN_UPGRADES] = len(ItemList[m.SelectedItem].Upgrades)
+    }
+  }
+  return m
 }
