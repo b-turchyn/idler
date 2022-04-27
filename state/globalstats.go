@@ -7,6 +7,7 @@ import (
 
 	"github.com/b-turchyn/idler/database"
 	"github.com/b-turchyn/idler/model"
+	"github.com/b-turchyn/idler/util"
 	"github.com/b-turchyn/idler/view"
 	"github.com/charmbracelet/wish"
 	"github.com/gliderlabs/ssh"
@@ -37,7 +38,7 @@ func TopUsers() []string {
   var result []string
   for i, v := range TopUsersList {
     result = append(result, view.ListItem(
-      fmt.Sprintf("%d. %s (%d points)", i + 1, v.Ident, v.Stats.Points),
+      fmt.Sprintf("%d. %s (%s points)", i + 1, v.Ident, util.NumberFormatLong(v.Stats.Points)),
       false,
     ))
   }

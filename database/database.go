@@ -6,10 +6,11 @@ import (
 	"log"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/spf13/viper"
 )
 
 func Open(filename string) (*sql.DB, error) {
-  db, err := sql.Open("sqlite3", filename)
+  db, err := sql.Open(viper.GetString("database.type"), filename)
   if err != nil {
     return nil, err
   }

@@ -14,6 +14,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+const (
+  CURSOR_COLUMN = 0
+  CURSOR_ROW = 1
+)
+
 type State struct {
   Term string
   Width int
@@ -21,7 +26,7 @@ type State struct {
   PerSecond uint64
   windowReady bool
 
-  Cursor int
+  Cursor [2]int
   SelectedTab int
 
   User model.User
@@ -74,9 +79,9 @@ func (m State) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     case "enter":
       m = m.purchase()
     case "up", "k":
-      m.Cursor--
+      m.Cursor[CURSOR_ROW]--
     case "down", "j":
-      m.Cursor++
+      m.Cursor[CURSOR_ROW]++
     case "ctrl+l":
       tea.EnterAltScreen()
     }
@@ -135,11 +140,11 @@ func (m State) View() string {
 }
 
 func (m State) purchase() State {
-  if m.Cursor < 0 || m.Cursor >= len(ItemList) {
+  if m.Cursor[CURSOR_COLUMN] < 0 || m.Cursor[CURSOR_COLUMN] >= len(ItemList) {
     return m
   }
 
-  item := ItemList[m.Cursor]
+  item := ItemList[m.Cursor[CURSOR_COLUMN]]
   refmodel := reflect.ValueOf(&m.User.Stats).Elem()
   field := refmodel.FieldByName(item.Field)
   price := util.Cost(item.InitialCost, field.Uint())
@@ -186,7 +191,7 @@ func (m State) IncrementTab(up bool) State {
     }
   }
 
-  m.Cursor = 0
+  m.Cursor = [2]int{0, 0}
 
   return m
 }
@@ -216,7 +221,7 @@ func (m State) CostList() string {
     formattednumber := util.NumberFormatLong(util.Cost(v.InitialCost, refmodel.FieldByName(v.Field).Uint()))
     itemstring = view.ListItem(
       fmt.Sprintf("%ss: %s", v.Name, formattednumber),
-      i == m.Cursor,
+      m.Cursor[CURSOR_COLUMN] == 0 && i == m.Cursor[CURSOR_ROW],
     )
 
     listItems = append(listItems, itemstring)

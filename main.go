@@ -18,21 +18,20 @@ import (
 	bm "github.com/charmbracelet/wish/bubbletea"
 	lm "github.com/charmbracelet/wish/logging"
 	"github.com/gliderlabs/ssh"
+	"github.com/spf13/viper"
 )
-
-const host = "0.0.0.0"
-const port = 2222
 
 var db *sql.DB
 
 func main() {
   var err error
-  db, err = database.Open("idler.sqlite3")
+  InitConfig()
+  db, err = database.Open(viper.GetString("database.filename"))
 
   go state.GetTopUsers(db)
 
   s, err := wish.NewServer(
-    wish.WithAddress(fmt.Sprintf("%s:%d", host, port)),
+    wish.WithAddress(fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port"))),
     wish.WithHostKeyPath(".ssh/term_info_ed25519"),
     wish.WithMiddleware(
       bm.Middleware(teaHandler),
@@ -50,7 +49,7 @@ func main() {
 
   done := make(chan os.Signal, 1)
   signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-  log.Printf("Starting SSH server on %s:%d", host, port)
+  log.Printf("Starting SSH server on %s:%d", viper.GetString("server.host"), viper.GetInt("server.port"))
 
   go func() {
     if err = s.ListenAndServe(); err != nil {
@@ -84,11 +83,32 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
     Height: pty.Window.Height,
 
     SelectedTab: 0,
-    Cursor: 0,
+    Cursor: [2]int{0, 0},
     User: user,
     Db: db,
   }.SetupData()
 
   return m, []tea.ProgramOption{tea.WithAltScreen()}
 
+}
+
+func InitConfig() {
+  viper.SetConfigName("config")
+  viper.SetConfigType("yaml")
+  viper.AddConfigPath("/etc/idler")
+  viper.AddConfigPath("$HOME/.idler")
+  viper.AddConfigPath(".")
+
+  viper.SetDefault("server.host", "0.0.0.0")
+  viper.SetDefault("server.port", 2222)
+  viper.SetDefault("database.type", "sqlite3")
+  viper.SetDefault("database.filename", "idler.sqlite3")
+
+  if err := viper.ReadInConfig(); err != nil {
+    if  _, ok := err.(viper.ConfigFileNotFoundError); ok {
+      log.Println("Did not find config file; using config defaults")
+    } else {
+      log.Fatalf("Failed to load config file: %w\n", err)
+    }
+  }
 }

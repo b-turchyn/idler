@@ -15,4 +15,11 @@ type ItemType struct {
   InitialCost uint64
   BasePoints uint64
   Field string
+
+  Upgrades []ItemUpgrade
+}
+
+type ItemUpgrade struct {
+  Name string
+  Cost uint64
 }

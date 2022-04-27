@@ -6,7 +6,7 @@ import (
   tea "github.com/charmbracelet/bubbletea"
 )
 
-const defaultFps = 10
+const defaultFps = 2
 
 type ViewTickMsg struct {
   Time time.Time
