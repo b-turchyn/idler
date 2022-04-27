@@ -7,29 +7,31 @@ import (
 var (
   list = lipgloss.NewStyle().
     Border(lipgloss.NormalBorder(), false, true, false, false).
-    MarginRight(2).
-    Height(8).
-    Width(50)
+    BorderForeground(special).
+    PaddingLeft(2).
+    PaddingRight(2)
+
 
   listHeader = lipgloss.NewStyle().
     BorderStyle(lipgloss.NormalBorder()).
     BorderBottom(true).
     BorderForeground(subtle).
     MarginRight(2).
-    MarginLeft(2).
     Render
 
-  listItem = lipgloss.NewStyle().PaddingLeft(2).Render
+  listItem = lipgloss.NewStyle().Render
 
-  activeListItem = lipgloss.NewStyle().PaddingLeft(2).Foreground(highlight).Render
+  activeListItem = lipgloss.NewStyle().Foreground(highlight).Render
 )
 
 func List(title string, items []string) string {
   items = prepend(items, listHeader(title))
 
-  return lipgloss.JoinVertical(
-    lipgloss.Top,
-    items...,
+  return list.Render(
+    lipgloss.JoinVertical(
+      lipgloss.Left,
+      items...,
+    ),
   )
 }
 
