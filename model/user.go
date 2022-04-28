@@ -37,7 +37,7 @@ type PurchasedItem struct {
 }
 
 func (u User) Migrate() User {
-  if u.StatsV01 != (PlayerStats{}) {
+  if len(u.StatsV02.Items) == 0 {
     log.Println("User is on v1 stats, migrating to v2")
     u = u.migrateStatsV01ToV02()
   }

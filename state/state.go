@@ -3,7 +3,6 @@ package state
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	"github.com/b-turchyn/idler/database"
 	"github.com/b-turchyn/idler/model"
@@ -187,11 +186,8 @@ func (m State) purchase() State {
   } else if m.CursorColumn() == GAME_COLUMN_UPGRADES {
     upgradeIndex := m.CursorRow()
     i := item.ItemList[m.SelectedItem]
-    log.Printf("i: %+v\n", i)
     field := m.User.StatsV02.GetItem(m.SelectedItem)
-    log.Printf("field: %+v\n", field)
     upgrade := i.Upgrades[upgradeIndex]
-    log.Printf("upgrade: %+v\n", upgrade)
 
     if m.User.StatsV02.Points < upgrade.Cost || field.IsUpgraded(upgradeIndex) {
       return m
@@ -200,7 +196,6 @@ func (m State) purchase() State {
     m.User.StatsV02.Points -= upgrade.Cost
 
     if len(field.Upgrades) < len(i.Upgrades) {
-      log.Printf("len(field): %d, len(item): %d. Expanding\n", len(field.Upgrades), len(i.Upgrades))
       // Create a new array that's the correct size
       tempupgrades := make([]bool, len(i.Upgrades))
       for i, v := range field.Upgrades {
@@ -213,7 +208,6 @@ func (m State) purchase() State {
     m.User.StatsV02.Items[m.SelectedItem] = field
 
     m = m.recalculatePerSecond()
-    log.Printf("%+v\n", m.User.StatsV02.Items[m.SelectedItem])
   }
 
   return m

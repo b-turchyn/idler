@@ -106,7 +106,7 @@ func SaveUserByPublicKey(db *sql.DB, user model.User) {
 
   _, err = stmt.Exec(
     user.Ident,
-    user.StatsV01.Points,
+    user.StatsV02.Points,
     user.StatsV01.Bots,
     user.StatsV01.Lurkers,
     user.StatsV01.Viewers,
