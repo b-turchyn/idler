@@ -3,10 +3,11 @@ package state
 import (
 	"database/sql"
 	"fmt"
-	"reflect"
+	"log"
 
 	"github.com/b-turchyn/idler/database"
 	"github.com/b-turchyn/idler/model"
+	"github.com/b-turchyn/idler/model/item"
 	"github.com/b-turchyn/idler/util"
 	"github.com/b-turchyn/idler/view"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -34,7 +35,7 @@ const (
  */
 var maxLengthColumns = [][]int{
   // TAB_GAME
-  []int{ len(ItemList), len(ItemList[0].Upgrades) },
+  []int{ len(item.ItemList), len(item.ItemList[0].Upgrades) },
 }
 
 type State struct {
@@ -72,7 +73,7 @@ func (m State) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     m.Width = msg.Width
 
     headerHeight := lipgloss.Height(view.Tabs(m.Width, 0)) +
-                    lipgloss.Height(view.Title(m.User.Ident, m.User.StatsV01.Points, m.PerSecond))
+                    lipgloss.Height(view.Title(m.User.Ident, m.User.StatsV02.Points, m.PerSecond))
 
     if !m.windowReady {
       m.ChangelogViewport = viewport.New(m.Width, m.Height - headerHeight)
@@ -131,7 +132,7 @@ func (m State) SetupData() State {
 }
 
 func (m State) GameTick() State {
-  m.User.StatsV01.Points += m.PerSecond
+  m.User.StatsV02.Points += m.PerSecond
 
   return m
 }
@@ -156,30 +157,64 @@ func (m State) View() string {
     m.Width,
     m.SelectedTab,
     m.User.Ident,
-    m.User.StatsV01.Points,
+    m.User.StatsV02.Points,
     m.PerSecond,
     f(m),
   )
 }
 
 func (m State) purchase() State {
-  if m.Cursor[CURSOR_COLUMN] < 0 || m.Cursor[CURSOR_COLUMN] >= len(ItemList) {
+  if m.SelectedTab != TAB_GAME {
     return m
   }
 
-  item := ItemList[m.Cursor[CURSOR_COLUMN]]
-  refmodel := reflect.ValueOf(&m.User.StatsV01).Elem()
-  field := refmodel.FieldByName(item.Field)
-  price := util.Cost(item.InitialCost, field.Uint())
+  if m.CursorColumn() == GAME_COLUMN_ITEMS {
+    i := item.ItemList[m.SelectedItem]
+    field := m.User.StatsV02.GetItem(m.SelectedItem)
 
-  if m.User.StatsV01.Points < price {
-    return m
+    price := field.CalculateNextCost(i)
+
+    if m.User.StatsV02.Points < price {
+      return m
+    }
+
+    m.User.StatsV02.Points -= price
+    field.Quantity++
+    m.User.StatsV02.Items[m.CursorRow()] = field
+
+
+    m = m.recalculatePerSecond()
+  } else if m.CursorColumn() == GAME_COLUMN_UPGRADES {
+    upgradeIndex := m.CursorRow()
+    i := item.ItemList[m.SelectedItem]
+    log.Printf("i: %+v\n", i)
+    field := m.User.StatsV02.GetItem(m.SelectedItem)
+    log.Printf("field: %+v\n", field)
+    upgrade := i.Upgrades[upgradeIndex]
+    log.Printf("upgrade: %+v\n", upgrade)
+
+    if m.User.StatsV02.Points < upgrade.Cost || field.IsUpgraded(upgradeIndex) {
+      return m
+    }
+
+    m.User.StatsV02.Points -= upgrade.Cost
+
+    if len(field.Upgrades) < len(i.Upgrades) {
+      log.Printf("len(field): %d, len(item): %d. Expanding\n", len(field.Upgrades), len(i.Upgrades))
+      // Create a new array that's the correct size
+      tempupgrades := make([]bool, len(i.Upgrades))
+      for i, v := range field.Upgrades {
+        tempupgrades[i] = v
+      }
+      field.Upgrades = tempupgrades
+    }
+
+    field.Upgrades[upgradeIndex] = true
+    m.User.StatsV02.Items[m.SelectedItem] = field
+
+    m = m.recalculatePerSecond()
+    log.Printf("%+v\n", m.User.StatsV02.Items[m.SelectedItem])
   }
-
-  m.User.StatsV01.Points -= price
-  field.SetUint(field.Uint() + 1)
-
-  m = m.recalculatePerSecond()
 
   return m
 }
@@ -187,11 +222,10 @@ func (m State) purchase() State {
 func (m State) recalculatePerSecond() State {
   var result uint64
 
-  for _, v := range ItemList {
-    refmodel := reflect.ValueOf(m.User.StatsV01)
-    field := refmodel.FieldByName(v.Field).Uint()
+  for i, v := range item.ItemList {
+    field := m.User.StatsV02.Items[i]
 
-    result += v.BasePoints * field
+    result += field.CalculateItemPerSecond(v)
   }
 
   m.PerSecond = result
@@ -224,9 +258,9 @@ func (m State) IncrementTab(up bool) State {
 func (m State) ViewerCount() string {
   var listItems []string
 
-  for _, v := range ItemList {
-    refmodel := reflect.ValueOf(m.User.StatsV01)
-    formattednumber := util.NumberFormatLong(refmodel.FieldByName(v.Field).Uint())
+  for i, v := range item.ItemList {
+    field := m.User.StatsV02.GetItem(i)
+    formattednumber := util.NumberFormatLong(field.Quantity)
     listItems = append(listItems, view.ListItem(fmt.Sprintf("%ss: %s", v.Name, formattednumber), false))
   }
 
@@ -239,11 +273,11 @@ func (m State) ViewerCount() string {
 func (m State) CostList() string {
   var listItems []string
 
-  for i, v := range ItemList {
-    refmodel := reflect.ValueOf(m.User.StatsV01)
+  for i, v := range item.ItemList {
+    field := m.User.StatsV02.GetItem(i)
     var itemstring string
 
-    formattednumber := util.NumberFormatLong(util.Cost(v.InitialCost, refmodel.FieldByName(v.Field).Uint()))
+    formattednumber := util.NumberFormatLong(field.CalculateNextCost(v))
     itemstring = view.ListItem(
       fmt.Sprintf("%ss: %s", v.Name, formattednumber),
       m.Cursor[CURSOR_COLUMN] == 0 && i == m.Cursor[CURSOR_ROW],
@@ -260,10 +294,16 @@ func (m State) CostList() string {
 
 func (m State) UpgradeList() string {
   var upgradeItems []string
-  item := ItemList[m.SelectedItem]
+  selectedItem := item.ItemList[m.SelectedItem]
 
-  for i, v := range item.Upgrades {
-    upgradeItems = append(upgradeItems, v.ToString(m.Cursor[CURSOR_COLUMN] == 1 && i == m.Cursor[CURSOR_ROW]))
+  for i, v := range selectedItem.Upgrades {
+    state := item.Unowned
+    if m.CursorColumn() == GAME_COLUMN_UPGRADES && m.CursorRow() == i {
+      state = item.Highlighted
+    } else if m.User.StatsV02.GetItem(m.SelectedItem).IsUpgraded(i) {
+      state = item.Purchased
+    }
+    upgradeItems = append(upgradeItems, v.ToString(state))
   }
 
   return view.List(
@@ -306,7 +346,7 @@ func (m State) RecalculateCursorDisplay() State {
   case TAB_GAME:
     if m.CursorColumn() == GAME_COLUMN_ITEMS {
       m.SelectedItem = m.CursorRow()
-      maxLengthColumns[TAB_GAME][GAME_COLUMN_UPGRADES] = len(ItemList[m.SelectedItem].Upgrades)
+      maxLengthColumns[TAB_GAME][GAME_COLUMN_UPGRADES] = len(item.ItemList[m.SelectedItem].Upgrades)
     }
   }
   return m

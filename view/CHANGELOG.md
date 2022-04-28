@@ -9,6 +9,7 @@
 
 - Move configuration into YAML using [viper](https://github.com/spf13/viper)
 - Start prepping to support item and global upgrades
+- Initial attempt at item upgrade support 🎉
 
 ### April 26, 2022
 

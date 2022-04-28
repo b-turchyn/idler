@@ -22,6 +22,8 @@ var (
   listItem = lipgloss.NewStyle().Render
 
   activeListItem = lipgloss.NewStyle().Foreground(highlight).Render
+
+  disabledListItem = lipgloss.NewStyle().Foreground(subtle).Render
 )
 
 func List(title string, items []string) string {
@@ -41,6 +43,10 @@ func ListItem(text string, selected bool) string {
   }
 
   return listItem(text)
+}
+
+func DisabledListItem(text string) string {
+  return disabledListItem(text)
 }
 
 func ListHeader(text string) string {

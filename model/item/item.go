@@ -1,9 +1,17 @@
-package state
+package item
 
 import (
   "fmt"
   "github.com/b-turchyn/idler/util"
   "github.com/b-turchyn/idler/view"
+)
+
+type UpgradeState int
+
+const (
+  Unowned UpgradeState = iota
+  Purchased
+  Highlighted
 )
 
 var(
@@ -15,7 +23,9 @@ var(
       BasePoints: 1,
       Upgrades: []ItemUpgrade{
         { Name: "56K Modem", Cost: 5000, Upgrade: func(base uint64) uint64 { return base * 2 } },
-        { Name: "T1 Line", Cost: 50000, Upgrade: func(base uint64) uint64 { return base * 2 } },
+        { Name: "T1 Line", Cost: 25000, Upgrade: func(base uint64) uint64 { return base * 2 } },
+        { Name: "T2 Line", Cost: 100000, Upgrade: func(base uint64) uint64 { return base * 2 } },
+        { Name: "T3 Line", Cost: 2500000, Upgrade: func(base uint64) uint64 { return base * 2 } },
       },
     },
     { Name: "Lurker", Field: "Lurkers", InitialCost: 200, BasePoints: 30 },
@@ -41,6 +51,11 @@ type ItemUpgrade struct {
   Upgrade func(base uint64) uint64
 }
 
-func (u ItemUpgrade) ToString(active bool) string {
-  return view.ListItem(fmt.Sprintf("%s: %s", u.Name, util.NumberFormatLong(u.Cost)), active)
+func (u ItemUpgrade) ToString(state UpgradeState) string {
+  content := fmt.Sprintf("%s: %s", u.Name, util.NumberFormatLong(u.Cost))
+  if state == Purchased {
+    return view.DisabledListItem(content)
+  }
+  return view.ListItem(content, state == Highlighted)
 }
+

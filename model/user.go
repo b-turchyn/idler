@@ -1,6 +1,11 @@
 package model
 
-import "log"
+import (
+	"log"
+
+	"github.com/b-turchyn/idler/model/item"
+	"github.com/b-turchyn/idler/util"
+)
 
 
 type User struct {
@@ -63,4 +68,32 @@ func (u User) migrateStatsV01ToV02() User {
   u.StatsV01.Tier3Subs = 0
 
   return u
+}
+
+func (stats PlayerStatsV2) GetItem(index int) PurchasedItem {
+  if len(stats.Items) > index {
+    return stats.Items[index]
+  }
+
+  return PurchasedItem{}
+}
+
+func (item PurchasedItem) CalculateItemPerSecond(itemDetails item.ItemType) uint64 {
+  result := itemDetails.BasePoints * item.Quantity
+
+  for i, v := range itemDetails.Upgrades {
+    if len(item.Upgrades) > i && item.Upgrades[i] {
+      result = v.Upgrade(result)
+    }
+  }
+
+  return result
+}
+
+func (item PurchasedItem) CalculateNextCost(itemDetails item.ItemType) uint64 {
+  return util.Cost(itemDetails.InitialCost, item.Quantity)
+}
+
+func (item PurchasedItem) IsUpgraded(index int) bool {
+  return len(item.Upgrades) > index && item.Upgrades[index]
 }
