@@ -5,6 +5,10 @@
 
 ## v0.1.1 (Latest)
 
+### April 28, 2022
+
+- Fix for being able to move your cursor too far left or right
+
 ### April 27, 2022
 
 - Move configuration into YAML using [viper](https://github.com/spf13/viper)

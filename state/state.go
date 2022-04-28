@@ -102,9 +102,9 @@ func (m State) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     case "down", "j":
       m = m.SetCursorRow(m.CursorRow() + 1)
     case "left", "h":
-      m = m.SetCursorColumn(m.CursorColumn() - 1)
+      m = m.SetCursor(m.CursorColumn() - 1, 0)
     case "right", "l":
-      m = m.SetCursorColumn(m.CursorColumn() + 1)
+      m = m.SetCursor(m.CursorColumn() + 1, 0)
     case "ctrl+l":
       tea.EnterAltScreen()
     }
@@ -319,7 +319,7 @@ func (m State) CursorColumn() int {
 
 func (m State) SetCursorRow(row int) State {
   max := maxLengthColumns[m.SelectedTab][m.CursorColumn()]
-  m.Cursor[CURSOR_ROW] = util.Within(0, row, max - 1)
+  m.Cursor[CURSOR_ROW] = util.Within(0, row, util.Max(0, max - 1))
 
   return m.RecalculateCursorDisplay()
 }
@@ -329,8 +329,11 @@ func (m State) CursorRow() int {
 }
 
 func (m State) SetCursor(col, row int) State {
-  m.Cursor[CURSOR_COLUMN] = col
-  m.Cursor[CURSOR_ROW] = row
+  max := len(maxLengthColumns[m.SelectedTab])
+  m.Cursor[CURSOR_COLUMN] = util.Within(0, col, max - 1)
+
+  max = maxLengthColumns[m.SelectedTab][m.CursorColumn()]
+  m.Cursor[CURSOR_ROW] = util.Within(0, row, util.Max(0, max - 1))
 
   return m.RecalculateCursorDisplay()
 }
