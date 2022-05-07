@@ -17,6 +17,7 @@ import (
 
   "github.com/b-turchyn/idler/database"
   "github.com/b-turchyn/idler/state"
+  "github.com/b-turchyn/idler/state/server"
   tea "github.com/charmbracelet/bubbletea"
   "github.com/charmbracelet/wish"
   bm "github.com/charmbracelet/wish/bubbletea"
@@ -71,7 +72,18 @@ var serveCmd = &cobra.Command{
       }
     }()
 
-    <-done
+
+    if viper.GetBool("server.non-interactive") {
+      <-done
+    } else {
+      p := tea.NewProgram(
+        server.InitialModel(),
+        tea.WithAltScreen(),
+      )
+      if err = p.Start(); err != nil {
+        log.Fatalln(err)
+      }
+    }
     log.Println("Stopping SSH server")
     ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
     defer func() { cancel() }()
@@ -91,8 +103,10 @@ func init() {
   // serveCmd.PersistentFlags().String("foo", "", "A help for foo")
   serveCmd.PersistentFlags().String("host", "0.0.0.0", "Address to bind to")
   serveCmd.PersistentFlags().IntP("port", "p", 2222, "Port to listen on")
+  serveCmd.PersistentFlags().BoolP("no-interactive", "i", false, "Disable interactive host view")
   viper.BindPFlag("server.host", serveCmd.PersistentFlags().Lookup("host"))
   viper.BindPFlag("server.port", serveCmd.PersistentFlags().Lookup("port"))
+  viper.BindPFlag("server.non-interactive", serveCmd.PersistentFlags().Lookup("no-interactive"))
 
   // Cobra supports local flags which will only run when this command
   // is called directly, e.g.:

@@ -5,6 +5,15 @@
 
 ## v0.1.1 (Latest)
 
+### May 7, 2022
+
+- Added Tier 2 Sub and Tier 3 Sub items
+- Added minimum item quantities for purchasing upgrades
+
+### April 30, 2022
+
+- Add generic upgrades to remaining purchasable items
+
 ### April 28, 2022
 
 - Fix for being able to move your cursor too far left or right

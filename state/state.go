@@ -34,7 +34,7 @@ const (
  */
 var maxLengthColumns = [][]int{
   // TAB_GAME
-  []int{ len(item.ItemList), len(item.ItemList[0].Upgrades) },
+  { len(item.ItemList), len(item.ItemList[0].Upgrades) },
 }
 
 type State struct {
@@ -291,10 +291,16 @@ func (m State) UpgradeList() string {
   selectedItem := item.ItemList[m.SelectedItem]
 
   for i, v := range selectedItem.Upgrades {
+    currentItem := m.User.StatsV02.GetItem(m.SelectedItem)
+
+    if v.MinimumQuantity > uint(currentItem.Quantity) {
+      continue
+    }
+
     state := item.Unowned
     if m.CursorColumn() == GAME_COLUMN_UPGRADES && m.CursorRow() == i {
       state = item.Highlighted
-    } else if m.User.StatsV02.GetItem(m.SelectedItem).IsUpgraded(i) {
+    } else if currentItem.IsUpgraded(i) {
       state = item.Purchased
     }
     upgradeItems = append(upgradeItems, v.ToString(state))
